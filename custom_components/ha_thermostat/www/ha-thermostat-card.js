@@ -161,6 +161,44 @@ class HAThermostatCard extends HTMLElement {
           align-items: center;
           justify-content: center;
         }
+        .config-box {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          min-height: 100px;
+        }
+        .config-actions {
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          margin-top: 8px;
+        }
+        .action-icon {
+          cursor: pointer;
+          --mdc-icon-size: 24px;
+          color: var(--secondary-text-color);
+        }
+        .action-icon:hover {
+          color: var(--primary-color);
+        }
+        .action-icon.visible {
+          color: var(--success-color, green);
+        }
+        .action-icon.hidden {
+          color: var(--error-color, red);
+        }
+        .input-container {
+          margin: 16px 0;
+        }
+        input[type="text"] {
+          width: 100%;
+          padding: 8px;
+          border: 1px solid var(--divider-color);
+          border-radius: 4px;
+          font-size: 1em;
+          background: var(--card-background-color, white);
+          color: var(--primary-text-color);
+        }
       </style>
 
       <ha-card>
@@ -187,28 +225,39 @@ class HAThermostatCard extends HTMLElement {
           this.render();
         });
       });
+    } else if (this._activeTab === 1) {
+      this.bindConfigEvents();
     }
 
-    if (this._selectedEntity) {
+    if (this._selectedEntity || this._renamingEntity) {
       this.bindPopupEvents();
     }
   }
 
   renderOverview(entities) {
-    if (entities.length === 0) {
-      return '<div>No climate entities found.</div>';
+    const settings = this._config.entity_settings || {};
+    const visibleEntities = entities.filter(eid => {
+      const setting = settings[eid];
+      return !setting || setting.visible !== false;
+    });
+
+    if (visibleEntities.length === 0) {
+      return '<div>No visible climate entities. Check Configuration tab.</div>';
     }
+
     return `
       <div class="grid">
-        ${entities.map(eid => {
+        ${visibleEntities.map(eid => {
       const state = this._hass.states[eid];
+      const setting = settings[eid];
+      const name = (setting && setting.name) || state.attributes.friendly_name || eid;
       const temp = state.attributes.current_temperature || state.attributes.temperature || 'N/A';
       const unit = this._hass.config.unit_system.temperature;
       return `
             <div class="thermostat-box" data-entity-id="${eid}">
-              <div class="thermostat-name">${state.attributes.friendly_name || eid}</div>
+              <div class="thermostat-name">${name}</div>
               <div class="thermostat-temp">${temp} ${unit}</div>
-              <div>${state.state}</div>
+              <div class="thermostat-state">${state.state}</div>
             </div>
           `;
     }).join('')}
@@ -217,13 +266,71 @@ class HAThermostatCard extends HTMLElement {
   }
 
   renderConfig() {
-    return '<div>Configuration coming soon...</div>';
+    const entities = Object.keys(this._hass.states).filter(eid => eid.startsWith('climate.'));
+    const settings = this._config.entity_settings || {};
+
+    return `
+      <div class="grid">
+        ${entities.map(eid => {
+      const state = this._hass.states[eid];
+      const setting = settings[eid] || {};
+      const isVisible = setting.visible !== false;
+      const name = setting.name || state.attributes.friendly_name || eid;
+
+      return `
+            <div class="thermostat-box config-box">
+              <div class="thermostat-name">${name}</div>
+              <div class="config-actions">
+                <ha-icon 
+                  class="action-icon ${isVisible ? 'visible' : 'hidden'}" 
+                  icon="${isVisible ? 'mdi:eye' : 'mdi:eye-off'}"
+                  data-action="toggle-visibility"
+                  data-entity-id="${eid}"
+                ></ha-icon>
+                <ha-icon 
+                  class="action-icon" 
+                  icon="mdi:cog"
+                  data-action="rename"
+                  data-entity-id="${eid}"
+                ></ha-icon>
+              </div>
+            </div>
+          `;
+    }).join('')}
+      </div>
+    `;
   }
 
   renderPopup() {
+    if (this._renamingEntity) {
+      const settings = this._config.entity_settings || {};
+      const setting = settings[this._renamingEntity] || {};
+      const state = this._hass.states[this._renamingEntity];
+      const currentName = setting.name || (state ? state.attributes.friendly_name : this._renamingEntity);
+
+      return `
+        <div class="overlay">
+          <div class="popup">
+            <h3>Rename ${currentName}</h3>
+            <div class="input-container">
+              <input type="text" id="rename-input" value="${currentName}" />
+            </div>
+            <div class="popup-buttons">
+              <button id="btn-save-name">Save</button>
+              <button id="btn-cancel-rename" class="cancel">Cancel</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     const state = this._hass.states[this._selectedEntity];
-    const name = state ? (state.attributes.friendly_name || this._selectedEntity) : this._selectedEntity;
-    const currentTemp = state ? state.attributes.temperature : 20; // Default if N/A
+    if (!state) return '';
+
+    const settings = this._config.entity_settings || {};
+    const setting = settings[this._selectedEntity];
+    const name = (setting && setting.name) || state.attributes.friendly_name || this._selectedEntity;
+    const currentTemp = state.attributes.temperature !== undefined ? state.attributes.temperature : 20;
 
     if (this._confirmingOff) {
       return `
@@ -263,17 +370,26 @@ class HAThermostatCard extends HTMLElement {
   bindPopupEvents() {
     const overlay = this.shadowRoot.querySelector('.overlay');
 
-    // Close helper
     const close = () => {
       this._selectedEntity = null;
       this._confirmingOff = false;
+      this._renamingEntity = null;
       this.render();
     };
 
-    // Overlay click
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) close();
     });
+
+    if (this._renamingEntity) {
+      this.shadowRoot.getElementById('btn-cancel-rename').addEventListener('click', close);
+      this.shadowRoot.getElementById('btn-save-name').addEventListener('click', () => {
+        const newName = this.shadowRoot.getElementById('rename-input').value;
+        this.updateConfig(this._renamingEntity, { name: newName });
+        close();
+      });
+      return;
+    }
 
     if (this._confirmingOff) {
       this.shadowRoot.getElementById('btn-confirm-off').addEventListener('click', () => {
@@ -287,7 +403,6 @@ class HAThermostatCard extends HTMLElement {
       return;
     }
 
-    // Main Popup Events
     this.shadowRoot.getElementById('btn-ok').addEventListener('click', close);
 
     this.shadowRoot.getElementById('btn-heat').addEventListener('click', () => {
@@ -302,6 +417,47 @@ class HAThermostatCard extends HTMLElement {
 
     this.shadowRoot.getElementById('btn-up').addEventListener('click', () => this.adjustTemp(0.5));
     this.shadowRoot.getElementById('btn-down').addEventListener('click', () => this.adjustTemp(-0.5));
+  }
+
+  updateConfig(entityId, changes) {
+    const newConfig = { ...this._config };
+    if (!newConfig.entity_settings) {
+      newConfig.entity_settings = {};
+    }
+    newConfig.entity_settings[entityId] = {
+      ...(newConfig.entity_settings[entityId] || {}),
+      ...changes
+    };
+
+    this._config = newConfig;
+
+    const event = new CustomEvent("config-changed", {
+      detail: { config: newConfig },
+      bubbles: true,
+      composed: true,
+    });
+    this.dispatchEvent(event);
+    this.render();
+  }
+
+  // Add event listeners for config tab actions
+  bindConfigEvents() {
+    this.shadowRoot.querySelectorAll('.action-icon').forEach(icon => {
+      icon.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent box click
+        const action = e.currentTarget.dataset.action;
+        const entityId = e.currentTarget.dataset.entityId;
+
+        if (action === 'toggle-visibility') {
+          const settings = (this._config.entity_settings || {})[entityId] || {};
+          const currentVisible = settings.visible !== false;
+          this.updateConfig(entityId, { visible: !currentVisible });
+        } else if (action === 'rename') {
+          this._renamingEntity = entityId;
+          this.render();
+        }
+      });
+    });
   }
 
   adjustTemp(delta) {
