@@ -21,7 +21,23 @@ A custom Home Assistant integration that controls climate entities based on a sc
 
 ## Configuration
 
-(Configuration details to be added)
+## Lovelace Card
+
+This integration comes with a custom Lovelace card.
+
+### Installation
+
+1. After installing the integration via HACS, the card resource should be automatically added. If not, add `/hacsfiles/ha-thermostat/ha-thermostat-card.js` as a JavaScript Module to your Lovelace resources.
+
+### Configuration
+
+Add the following to your dashboard configuration:
+
+```yaml
+type: custom:ha-thermostat-card
+```
+
+There are currently no additional configuration options. The card will automatically display all available climate entities.
 
 ## Credits
 
