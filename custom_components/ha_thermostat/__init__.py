@@ -28,6 +28,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
     ])
 
+    # Add Lovelace resource if not already present
+    try:
+        resources = hass.data["lovelace"]["resources"]
+        # Check if resource exists
+        found = False
+        for resource in resources.async_items():
+            if resource["url"] == "/ha_thermostat/ha-thermostat-card.js":
+                found = True
+                break
+        
+        if not found:
+            await resources.async_create_item({
+                "res_type": "module",
+                "url": "/ha_thermostat/ha-thermostat-card.js",
+            })
+    except Exception:
+        pass # Handle case where lovelace resources are not loaded or available
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
