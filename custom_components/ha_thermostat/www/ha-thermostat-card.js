@@ -139,6 +139,27 @@ class HAThermostatCard extends HTMLElement {
         button:hover {
           opacity: 0.9;
         }
+        .temp-control {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin: 24px 0;
+        }
+        .target-temp {
+          font-size: 2em;
+          font-weight: bold;
+          color: var(--primary-text-color);
+        }
+        .circle-btn {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          padding: 0;
+          font-size: 1.5em;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
       </style>
 
       <ha-card>
@@ -201,17 +222,37 @@ class HAThermostatCard extends HTMLElement {
   renderPopup() {
     const state = this._hass.states[this._selectedEntity];
     const name = state ? (state.attributes.friendly_name || this._selectedEntity) : this._selectedEntity;
+    const currentTemp = state ? state.attributes.temperature : 20; // Default if N/A
+
+    if (this._confirmingOff) {
+      return `
+        <div class="overlay">
+          <div class="popup">
+            <h3>Turn Off ${name}?</h3>
+            <div class="popup-buttons">
+              <button id="btn-confirm-off">Yes, Turn Off</button>
+              <button id="btn-cancel-off" class="cancel">No</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     return `
       <div class="overlay">
         <div class="popup">
           <h3>${name}</h3>
+          
+          <div class="temp-control">
+            <button id="btn-down" class="circle-btn">-</button>
+            <div class="target-temp">${currentTemp}</div>
+            <button id="btn-up" class="circle-btn">+</button>
+          </div>
+
           <div class="popup-buttons">
-            <button id="btn-heat">HVAC Heat</button>
-            <button id="btn-off">HVAC Off</button>
-            <button id="btn-up">Temperature Up</button>
-            <button id="btn-down">Temperature Down</button>
-            <button id="btn-cancel" class="cancel">Cancel</button>
+            <button id="btn-heat">Heat</button>
+            <button id="btn-off" class="cancel">Off</button>
+            <button id="btn-ok">OK</button>
           </div>
         </div>
       </div>
@@ -220,27 +261,46 @@ class HAThermostatCard extends HTMLElement {
 
   bindPopupEvents() {
     const overlay = this.shadowRoot.querySelector('.overlay');
-    const cancelBtn = this.shadowRoot.getElementById('btn-cancel');
 
-    // Close on cancel or background click
+    // Close helper
     const close = () => {
       this._selectedEntity = null;
+      this._confirmingOff = false;
       this.render();
     };
 
-    cancelBtn.addEventListener('click', close);
+    // Overlay click
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) close();
     });
 
-    // Actions
-    this.shadowRoot.getElementById('btn-heat').addEventListener('click', () => this.callService('set_hvac_mode', { hvac_mode: 'heat' }));
-    this.shadowRoot.getElementById('btn-off').addEventListener('click', () => this.callService('set_hvac_mode', { hvac_mode: 'off' }));
+    if (this._confirmingOff) {
+      this.shadowRoot.getElementById('btn-confirm-off').addEventListener('click', () => {
+        this.callService('set_hvac_mode', { hvac_mode: 'off' });
+        close();
+      });
+      this.shadowRoot.getElementById('btn-cancel-off').addEventListener('click', () => {
+        this._confirmingOff = false;
+        this.render();
+      });
+      return;
+    }
 
-    // For temp up/down, we need current setpoint.
-    // This is a simplified implementation.
-    this.shadowRoot.getElementById('btn-up').addEventListener('click', () => this.adjustTemp(1));
-    this.shadowRoot.getElementById('btn-down').addEventListener('click', () => this.adjustTemp(-1));
+    // Main Popup Events
+    this.shadowRoot.getElementById('btn-ok').addEventListener('click', close);
+
+    this.shadowRoot.getElementById('btn-heat').addEventListener('click', () => {
+      this.callService('set_hvac_mode', { hvac_mode: 'heat' });
+      close();
+    });
+
+    this.shadowRoot.getElementById('btn-off').addEventListener('click', () => {
+      this._confirmingOff = true;
+      this.render();
+    });
+
+    this.shadowRoot.getElementById('btn-up').addEventListener('click', () => this.adjustTemp(0.5));
+    this.shadowRoot.getElementById('btn-down').addEventListener('click', () => this.adjustTemp(-0.5));
   }
 
   adjustTemp(delta) {
