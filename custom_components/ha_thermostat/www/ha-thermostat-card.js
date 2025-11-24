@@ -212,7 +212,7 @@ class HAThermostatCard extends HTMLElement {
         </div>
       </ha-card>
 
-      ${this._selectedEntity ? this.renderPopup() : ''}
+      ${(this._selectedEntity || this._renamingEntity) ? this.renderPopup() : ''}
     `;
 
     this.shadowRoot.getElementById('tab-0').addEventListener('click', () => { this._activeTab = 0; this.render(); });
