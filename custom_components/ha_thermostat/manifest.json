@@ -2,7 +2,7 @@
   "domain": "ha_thermostat",
   "name": "HA Thermostat",
   "codeowners": [],
-  "config_flow": false,
+  "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/jeffreyvangorkum/ha-thermostat",
   "iot_class": "local_polling",
