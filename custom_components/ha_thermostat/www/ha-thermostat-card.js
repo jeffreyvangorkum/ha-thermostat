@@ -1,32 +1,33 @@
+console.info("HA Thermostat Card: Loading...");
 class HAThermostatCard extends HTMLElement {
-    constructor() {
-        super();
-        this.attachShadow({ mode: 'open' });
-        this._activeTab = 0; // 0: Overview, 1: Configuration
-        this._selectedEntity = null;
-    }
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._activeTab = 0; // 0: Overview, 1: Configuration
+    this._selectedEntity = null;
+  }
 
-    setConfig(config) {
-        this._config = config;
-    }
+  setConfig(config) {
+    this._config = config;
+  }
 
-    set hass(hass) {
-        this._hass = hass;
-        this.render();
-    }
+  set hass(hass) {
+    this._hass = hass;
+    this.render();
+  }
 
-    getCardSize() {
-        return 3;
-    }
+  getCardSize() {
+    return 3;
+  }
 
-    render() {
-        if (!this._hass) return;
+  render() {
+    if (!this._hass) return;
 
-        const climateEntities = Object.keys(this._hass.states).filter(
-            (eid) => eid.startsWith('climate.')
-        );
+    const climateEntities = Object.keys(this._hass.states).filter(
+      (eid) => eid.startsWith('climate.')
+    );
 
-        this.shadowRoot.innerHTML = `
+    this.shadowRoot.innerHTML = `
       <style>
         :host {
           display: block;
@@ -133,54 +134,54 @@ class HAThermostatCard extends HTMLElement {
       ${this._selectedEntity ? this.renderPopup() : ''}
     `;
 
-        this.shadowRoot.getElementById('tab-0').addEventListener('click', () => { this._activeTab = 0; this.render(); });
-        this.shadowRoot.getElementById('tab-1').addEventListener('click', () => { this._activeTab = 1; this.render(); });
+    this.shadowRoot.getElementById('tab-0').addEventListener('click', () => { this._activeTab = 0; this.render(); });
+    this.shadowRoot.getElementById('tab-1').addEventListener('click', () => { this._activeTab = 1; this.render(); });
 
-        if (this._activeTab === 0) {
-            this.shadowRoot.querySelectorAll('.thermostat-box').forEach(box => {
-                box.addEventListener('click', (e) => {
-                    this._selectedEntity = e.currentTarget.dataset.entityId;
-                    this.render();
-                });
-            });
-        }
-
-        if (this._selectedEntity) {
-            this.bindPopupEvents();
-        }
+    if (this._activeTab === 0) {
+      this.shadowRoot.querySelectorAll('.thermostat-box').forEach(box => {
+        box.addEventListener('click', (e) => {
+          this._selectedEntity = e.currentTarget.dataset.entityId;
+          this.render();
+        });
+      });
     }
 
-    renderOverview(entities) {
-        if (entities.length === 0) {
-            return '<div>No climate entities found.</div>';
-        }
-        return `
+    if (this._selectedEntity) {
+      this.bindPopupEvents();
+    }
+  }
+
+  renderOverview(entities) {
+    if (entities.length === 0) {
+      return '<div>No climate entities found.</div>';
+    }
+    return `
       <div class="grid">
         ${entities.map(eid => {
-            const state = this._hass.states[eid];
-            const temp = state.attributes.current_temperature || state.attributes.temperature || 'N/A';
-            const unit = this._hass.config.unit_system.temperature;
-            return `
+      const state = this._hass.states[eid];
+      const temp = state.attributes.current_temperature || state.attributes.temperature || 'N/A';
+      const unit = this._hass.config.unit_system.temperature;
+      return `
             <div class="thermostat-box" data-entity-id="${eid}">
               <div class="thermostat-name">${state.attributes.friendly_name || eid}</div>
               <div class="thermostat-temp">${temp} ${unit}</div>
               <div>${state.state}</div>
             </div>
           `;
-        }).join('')}
+    }).join('')}
       </div>
     `;
-    }
+  }
 
-    renderConfig() {
-        return '<div>Configuration coming soon...</div>';
-    }
+  renderConfig() {
+    return '<div>Configuration coming soon...</div>';
+  }
 
-    renderPopup() {
-        const state = this._hass.states[this._selectedEntity];
-        const name = state ? (state.attributes.friendly_name || this._selectedEntity) : this._selectedEntity;
+  renderPopup() {
+    const state = this._hass.states[this._selectedEntity];
+    const name = state ? (state.attributes.friendly_name || this._selectedEntity) : this._selectedEntity;
 
-        return `
+    return `
       <div class="overlay">
         <div class="popup">
           <h3>${name}</h3>
@@ -194,51 +195,51 @@ class HAThermostatCard extends HTMLElement {
         </div>
       </div>
     `;
-    }
+  }
 
-    bindPopupEvents() {
-        const overlay = this.shadowRoot.querySelector('.overlay');
-        const cancelBtn = this.shadowRoot.getElementById('btn-cancel');
+  bindPopupEvents() {
+    const overlay = this.shadowRoot.querySelector('.overlay');
+    const cancelBtn = this.shadowRoot.getElementById('btn-cancel');
 
-        // Close on cancel or background click
-        const close = () => {
-            this._selectedEntity = null;
-            this.render();
-        };
+    // Close on cancel or background click
+    const close = () => {
+      this._selectedEntity = null;
+      this.render();
+    };
 
-        cancelBtn.addEventListener('click', close);
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) close();
-        });
+    cancelBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
 
-        // Actions
-        this.shadowRoot.getElementById('btn-heat').addEventListener('click', () => this.callService('set_hvac_mode', { hvac_mode: 'heat' }));
-        this.shadowRoot.getElementById('btn-off').addEventListener('click', () => this.callService('set_hvac_mode', { hvac_mode: 'off' }));
+    // Actions
+    this.shadowRoot.getElementById('btn-heat').addEventListener('click', () => this.callService('set_hvac_mode', { hvac_mode: 'heat' }));
+    this.shadowRoot.getElementById('btn-off').addEventListener('click', () => this.callService('set_hvac_mode', { hvac_mode: 'off' }));
 
-        // For temp up/down, we need current setpoint.
-        // This is a simplified implementation.
-        this.shadowRoot.getElementById('btn-up').addEventListener('click', () => this.adjustTemp(1));
-        this.shadowRoot.getElementById('btn-down').addEventListener('click', () => this.adjustTemp(-1));
-    }
+    // For temp up/down, we need current setpoint.
+    // This is a simplified implementation.
+    this.shadowRoot.getElementById('btn-up').addEventListener('click', () => this.adjustTemp(1));
+    this.shadowRoot.getElementById('btn-down').addEventListener('click', () => this.adjustTemp(-1));
+  }
 
-    adjustTemp(delta) {
-        const state = this._hass.states[this._selectedEntity];
-        if (!state) return;
-        const currentSet = state.attributes.temperature;
-        if (currentSet === undefined) return; // Can't adjust if no setpoint
+  adjustTemp(delta) {
+    const state = this._hass.states[this._selectedEntity];
+    if (!state) return;
+    const currentSet = state.attributes.temperature;
+    if (currentSet === undefined) return; // Can't adjust if no setpoint
 
-        this.callService('set_temperature', { temperature: currentSet + delta });
-    }
+    this.callService('set_temperature', { temperature: currentSet + delta });
+  }
 
-    callService(service, data) {
-        this._hass.callService('climate', service, {
-            entity_id: this._selectedEntity,
-            ...data
-        });
-        // Close popup after action? Or keep open? User didn't specify.
-        // Let's keep it open for temp adjustments, maybe close for mode changes.
-        // For now, let's just keep it open.
-    }
+  callService(service, data) {
+    this._hass.callService('climate', service, {
+      entity_id: this._selectedEntity,
+      ...data
+    });
+    // Close popup after action? Or keep open? User didn't specify.
+    // Let's keep it open for temp adjustments, maybe close for mode changes.
+    // For now, let's just keep it open.
+  }
 }
 
 customElements.define('ha-thermostat-card', HAThermostatCard);

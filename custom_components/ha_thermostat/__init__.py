@@ -13,8 +13,13 @@ from .const import DOMAIN
 PLATFORMS: list[Platform] = [Platform.CLIMATE]
 
 
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HA Thermostat from a config entry."""
+    _LOGGER.info("Setting up HA Thermostat integration")
 
     hass.data.setdefault(DOMAIN, {})
     # TODO: Store any global data in hass.data[DOMAIN] if needed.
