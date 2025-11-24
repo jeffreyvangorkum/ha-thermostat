@@ -29,32 +29,36 @@ class HAThermostatCard extends HTMLElement {
 
     this.shadowRoot.innerHTML = `
       <style>
-        :host {
-          display: block;
-          --ha-card-background: var(--card-background-color, white);
-          --ha-card-box-shadow: var(--ha-card-box-shadow, 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12));
-          background: var(--ha-card-background);
-          box-shadow: var(--ha-card-box-shadow);
-          border-radius: var(--ha-card-border-radius, 4px);
-          color: var(--primary-text-color);
-          padding: 16px;
+        ha-card {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+        .card-header {
+          padding: 16px 16px 0;
+          font-size: 24px;
+          line-height: 32px;
+          color: var(--ha-card-header-color, --primary-text-color);
         }
         .tabs {
           display: flex;
           border-bottom: 1px solid var(--divider-color, #e0e0e0);
-          margin-bottom: 16px;
+          margin: 16px 16px 0;
         }
         .tab {
           padding: 8px 16px;
           cursor: pointer;
           border-bottom: 2px solid transparent;
+          color: var(--secondary-text-color);
         }
         .tab.active {
           border-bottom-color: var(--primary-color);
+          color: var(--primary-color);
           font-weight: bold;
         }
         .content {
-          min-height: 200px;
+          padding: 16px;
+          flex: 1;
         }
         .grid {
           display: grid;
@@ -63,21 +67,27 @@ class HAThermostatCard extends HTMLElement {
         }
         .thermostat-box {
           border: 1px solid var(--divider-color, #e0e0e0);
-          border-radius: 8px;
+          border-radius: var(--ha-card-border-radius, 4px);
           padding: 16px;
           text-align: center;
           cursor: pointer;
           transition: background-color 0.2s;
+          background-color: var(--card-background-color, white);
         }
         .thermostat-box:hover {
-          background-color: rgba(0, 0, 0, 0.05);
+          background-color: var(--secondary-background-color, rgba(0, 0, 0, 0.05));
         }
         .thermostat-name {
           font-weight: bold;
           margin-bottom: 8px;
+          color: var(--primary-text-color);
         }
         .thermostat-temp {
           font-size: 1.5em;
+          color: var(--primary-text-color);
+        }
+        .thermostat-state {
+          color: var(--secondary-text-color);
         }
         /* Popup Styles */
         .overlay {
@@ -91,16 +101,19 @@ class HAThermostatCard extends HTMLElement {
           justify-content: center;
           align-items: center;
           z-index: 999;
+          backdrop-filter: blur(2px);
         }
         .popup {
-          background: var(--ha-card-background);
+          background: var(--ha-card-background, white);
           padding: 24px;
-          border-radius: 8px;
+          border-radius: var(--ha-card-border-radius, 8px);
           width: 300px;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          box-shadow: var(--ha-card-box-shadow, 0 4px 6px rgba(0,0,0,0.1));
+          border: 1px solid var(--divider-color, #e0e0e0);
         }
         .popup h3 {
           margin-top: 0;
+          color: var(--primary-text-color);
         }
         .popup-buttons {
           display: flex;
@@ -112,24 +125,32 @@ class HAThermostatCard extends HTMLElement {
           padding: 10px;
           cursor: pointer;
           background-color: var(--primary-color);
-          color: white;
+          color: var(--text-primary-color, white);
           border: none;
           border-radius: 4px;
           font-size: 1em;
+          font-weight: 500;
         }
         button.cancel {
-          background-color: var(--secondary-text-color, #757575);
+          background-color: transparent;
+          color: var(--primary-text-color);
+          border: 1px solid var(--divider-color);
+        }
+        button:hover {
+          opacity: 0.9;
         }
       </style>
 
-      <div class="tabs">
-        <div class="tab ${this._activeTab === 0 ? 'active' : ''}" id="tab-0">Overview</div>
-        <div class="tab ${this._activeTab === 1 ? 'active' : ''}" id="tab-1">Configuration</div>
-      </div>
+      <ha-card>
+        <div class="tabs">
+          <div class="tab ${this._activeTab === 0 ? 'active' : ''}" id="tab-0">Overview</div>
+          <div class="tab ${this._activeTab === 1 ? 'active' : ''}" id="tab-1">Configuration</div>
+        </div>
 
-      <div class="content">
-        ${this._activeTab === 0 ? this.renderOverview(climateEntities) : this.renderConfig()}
-      </div>
+        <div class="content">
+          ${this._activeTab === 0 ? this.renderOverview(climateEntities) : this.renderConfig()}
+        </div>
+      </ha-card>
 
       ${this._selectedEntity ? this.renderPopup() : ''}
     `;
