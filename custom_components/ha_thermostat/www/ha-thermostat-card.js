@@ -1,4 +1,21 @@
 console.info("HA Thermostat Card: Loading...");
+const COMMON_ICONS = [
+  'mdi:account', 'mdi:air-conditioner', 'mdi:air-filter', 'mdi:baby-carriage',
+  'mdi:bed', 'mdi:briefcase', 'mdi:calendar-clock', 'mdi:car', 'mdi:ceiling-fan',
+  'mdi:chair-rolling', 'mdi:coffee', 'mdi:couch', 'mdi:desk', 'mdi:door',
+  'mdi:fan', 'mdi:fire', 'mdi:flower', 'mdi:fridge', 'mdi:garage',
+  'mdi:home', 'mdi:home-assistant', 'mdi:home-automation', 'mdi:home-thermometer',
+  'mdi:hvac', 'mdi:lamp', 'mdi:laptop', 'mdi:lightbulb', 'mdi:monitor',
+  'mdi:office-building', 'mdi:palette', 'mdi:power-plug', 'mdi:radiator',
+  'mdi:shower', 'mdi:silverware-fork-knife', 'mdi:sleep', 'mdi:snowflake',
+  'mdi:sofa', 'mdi:stove', 'mdi:television', 'mdi:thermometer', 'mdi:thermostat',
+  'mdi:toaster', 'mdi:toilet', 'mdi:washing-machine', 'mdi:water', 'mdi:water-percent',
+  'mdi:weather-cloudy', 'mdi:weather-fog', 'mdi:weather-hail', 'mdi:weather-lightning',
+  'mdi:weather-night', 'mdi:weather-partly-cloudy', 'mdi:weather-pouring',
+  'mdi:weather-rainy', 'mdi:weather-snowy', 'mdi:weather-sunny', 'mdi:weather-windy',
+  'mdi:wifi', 'mdi:window-closed', 'mdi:window-open'
+];
+
 class HAThermostatCard extends HTMLElement {
   constructor() {
     super();
@@ -337,7 +354,10 @@ class HAThermostatCard extends HTMLElement {
             </div>
             <div class="input-container">
               <label>Icon (e.g. mdi:fire)</label>
-              <input type="text" id="icon-input" value="${currentIcon}" placeholder="mdi:..." />
+              <input type="text" id="icon-input" value="${currentIcon}" list="icon-list" placeholder="mdi:..." />
+              <datalist id="icon-list">
+                ${COMMON_ICONS.map(icon => `<option value="${icon}">`).join('')}
+              </datalist>
             </div>
             <div class="popup-buttons">
               <button id="btn-save-name">Save</button>
