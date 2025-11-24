@@ -104,12 +104,13 @@ class HAThermostatCard extends HTMLElement {
           backdrop-filter: blur(2px);
         }
         .popup {
-          background: var(--ha-card-background, white);
+          background: var(--card-background-color, white);
           padding: 24px;
           border-radius: var(--ha-card-border-radius, 8px);
           width: 300px;
           box-shadow: var(--ha-card-box-shadow, 0 4px 6px rgba(0,0,0,0.1));
           border: 1px solid var(--divider-color, #e0e0e0);
+          color: var(--primary-text-color);
         }
         .popup h3 {
           margin-top: 0;
