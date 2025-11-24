@@ -18,6 +18,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     # TODO: Store any global data in hass.data[DOMAIN] if needed.
 
+    # Register the Lovelace card
+    hass.http.register_static_path(
+        "/ha_thermostat/ha-thermostat-card.js",
+        hass.config.path("custom_components/ha_thermostat/www/ha-thermostat-card.js"),
+        True,
+    )
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
