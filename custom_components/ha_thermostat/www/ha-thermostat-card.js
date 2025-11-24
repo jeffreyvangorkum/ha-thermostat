@@ -230,6 +230,15 @@ class HAThermostatCard extends HTMLElement {
           margin-bottom: 8px;
           --mdc-icon-size: 32px;
         }
+        .icon-input-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .preview-icon {
+          color: var(--primary-color);
+          --mdc-icon-size: 24px;
+        }
       </style>
 
       <ha-card>
@@ -354,7 +363,10 @@ class HAThermostatCard extends HTMLElement {
             </div>
             <div class="input-container">
               <label>Icon (e.g. mdi:fire)</label>
-              <input type="text" id="icon-input" value="${currentIcon}" list="icon-list" placeholder="mdi:..." />
+              <div class="icon-input-wrapper">
+                <input type="text" id="icon-input" value="${currentIcon}" list="icon-list" placeholder="mdi:..." />
+                <ha-icon id="icon-preview" icon="${currentIcon}" class="preview-icon"></ha-icon>
+              </div>
               <datalist id="icon-list">
                 ${COMMON_ICONS.map(icon => `<option value="${icon}">`).join('')}
               </datalist>
@@ -427,6 +439,14 @@ class HAThermostatCard extends HTMLElement {
 
     if (this._renamingEntity) {
       this.shadowRoot.getElementById('btn-cancel-rename').addEventListener('click', close);
+
+      const iconInput = this.shadowRoot.getElementById('icon-input');
+      const iconPreview = this.shadowRoot.getElementById('icon-preview');
+
+      iconInput.addEventListener('input', () => {
+        iconPreview.setAttribute('icon', iconInput.value);
+      });
+
       this.shadowRoot.getElementById('btn-save-name').addEventListener('click', () => {
         const newName = this.shadowRoot.getElementById('rename-input').value;
         const newIcon = this.shadowRoot.getElementById('icon-input').value;
