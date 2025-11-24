@@ -27,7 +27,11 @@ This integration comes with a custom Lovelace card.
 
 ### Installation
 
-1. After installing the integration via HACS, the card resource should be automatically added. If not, add `/ha_thermostat/ha-thermostat-card.js` as a JavaScript Module to your Lovelace resources.
+1. Go to **Settings** -> **Dashboards** -> **3 dots (top right)** -> **Resources**.
+2. Click **Add Resource**.
+3. Enter the following URL: `/ha_thermostat/ha-thermostat-card.js`
+4. Select **JavaScript Module**.
+5. Click **Create**.
 
 ### Configuration
 
