@@ -13,7 +13,9 @@ class HAThermostatCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    this.render();
+    if (!this._renamingEntity) {
+      this.render();
+    }
   }
 
   getCardSize() {
@@ -190,6 +192,12 @@ class HAThermostatCard extends HTMLElement {
         .input-container {
           margin: 16px 0;
         }
+        .input-container label {
+          display: block;
+          margin-bottom: 4px;
+          color: var(--secondary-text-color);
+          font-size: 0.9em;
+        }
         input[type="text"] {
           width: 100%;
           padding: 8px;
@@ -198,6 +206,12 @@ class HAThermostatCard extends HTMLElement {
           font-size: 1em;
           background: var(--card-background-color, white);
           color: var(--primary-text-color);
+          box-sizing: border-box;
+        }
+        .box-icon {
+          color: var(--primary-color);
+          margin-bottom: 8px;
+          --mdc-icon-size: 32px;
         }
       </style>
 
@@ -251,10 +265,12 @@ class HAThermostatCard extends HTMLElement {
       const state = this._hass.states[eid];
       const setting = settings[eid];
       const name = (setting && setting.name) || state.attributes.friendly_name || eid;
+      const icon = (setting && setting.icon) || '';
       const temp = state.attributes.current_temperature || state.attributes.temperature || 'N/A';
       const unit = this._hass.config.unit_system.temperature;
       return `
             <div class="thermostat-box" data-entity-id="${eid}">
+              ${icon ? `<ha-icon icon="${icon}" class="box-icon"></ha-icon>` : ''}
               <div class="thermostat-name">${name}</div>
               <div class="thermostat-temp">${temp} ${unit}</div>
               <div class="thermostat-state">${state.state}</div>
@@ -276,9 +292,11 @@ class HAThermostatCard extends HTMLElement {
       const setting = settings[eid] || {};
       const isVisible = setting.visible !== false;
       const name = setting.name || state.attributes.friendly_name || eid;
+      const icon = setting.icon || '';
 
       return `
             <div class="thermostat-box config-box">
+              ${icon ? `<ha-icon icon="${icon}" class="box-icon"></ha-icon>` : ''}
               <div class="thermostat-name">${name}</div>
               <div class="config-actions">
                 <ha-icon 
@@ -307,13 +325,19 @@ class HAThermostatCard extends HTMLElement {
       const setting = settings[this._renamingEntity] || {};
       const state = this._hass.states[this._renamingEntity];
       const currentName = setting.name || (state ? state.attributes.friendly_name : this._renamingEntity);
+      const currentIcon = setting.icon || '';
 
       return `
         <div class="overlay">
           <div class="popup">
-            <h3>Rename ${currentName}</h3>
+            <h3>Edit ${currentName}</h3>
             <div class="input-container">
+              <label>Name</label>
               <input type="text" id="rename-input" value="${currentName}" />
+            </div>
+            <div class="input-container">
+              <label>Icon (e.g. mdi:fire)</label>
+              <input type="text" id="icon-input" value="${currentIcon}" placeholder="mdi:..." />
             </div>
             <div class="popup-buttons">
               <button id="btn-save-name">Save</button>
@@ -385,7 +409,8 @@ class HAThermostatCard extends HTMLElement {
       this.shadowRoot.getElementById('btn-cancel-rename').addEventListener('click', close);
       this.shadowRoot.getElementById('btn-save-name').addEventListener('click', () => {
         const newName = this.shadowRoot.getElementById('rename-input').value;
-        this.updateConfig(this._renamingEntity, { name: newName });
+        const newIcon = this.shadowRoot.getElementById('icon-input').value;
+        this.updateConfig(this._renamingEntity, { name: newName, icon: newIcon });
         close();
       });
       return;
